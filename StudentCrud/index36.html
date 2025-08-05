@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Student CRUD</title>
+</head>
+<body>
+
+<h1>Student Management</h1>
+
+<form id="studentForm">
+    <input type="hidden" id="studentIdHidden">
+
+    <div>
+        <label for="studentId">Student ID:</label>
+        <input type="number" id="studentId" required>
+    </div>
+
+    <div>
+        <label for="studentName">Name:</label>
+        <input type="text" id="studentName" required>
+    </div>
+
+    <div>
+        <label for="studentEmail">Email:</label>
+        <input type="email" id="studentEmail" required>
+    </div>
+
+    <div>
+        <label for="marks">Marks:</label>
+        <input type="number" id="marks" required>
+    </div>
+
+    <button type="submit" id="submitBtn">Add Student</button>
+    <button type="button" id="resetBtn">Reset</button>
+</form>
+
+<h2>Student List</h2>
+
+<table border="1" cellpadding="8">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Marks</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody id="studentTableBody"></tbody>
+</table>
+
+<script>
+const API_URL = "http://localhost:8082/api/students";
+
+// Fetch all students
+async function fetchStudents() {
+    try {
+        const res = await fetch(API_URL);
+        const students = await res.json();
+        const tbody = document.getElementById("studentTableBody");
+        tbody.innerHTML = "";
+
+        students.forEach(student => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td>${student.studentId}</td>
+                <td>${student.studentName}</td>
+                <td>${student.studentEmail}</td>
+                <td>${student.marks}</td>
+                <td>
+                    <button onclick="editStudent(${student.studentId})">Edit</button>
+                    <button onclick="deleteStudent(${student.studentId})">Delete</button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    } catch (error) {
+        alert("Failed to fetch students: " + error.message);
+    }
+}
+
+// Add or update student
+document.getElementById("studentForm").addEventListener("submit", async function (e) {
+    e.preventDefault();
+
+    const studentId = document.getElementById("studentId").value;
+    const studentName = document.getElementById("studentName").value;
+    const studentEmail = document.getElementById("studentEmail").value;
+    const marks = document.getElementById("marks").value;
+
+    const studentData = {
+        studentId: parseInt(studentId),
+        studentName,
+        studentEmail,
+        marks: parseFloat(marks)
+    };
+
+    const method = await isExistingStudent(studentId) ? "PUT" : "POST";
+    const url = method === "PUT" ? `${API_URL}/${studentId}` : API_URL;
+
+    try {
+        const res = await fetch(url, {
+            method: method,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(studentData)
+        });
+
+        if (!res.ok) throw new Error(`Failed to ${method === "POST" ? "add" : "update"} student`);
+
+        await fetchStudents();
+        resetForm();
+    } catch (error) {
+        alert(error.message);
+    }
+});
+
+// Check if student exists
+async function isExistingStudent(id) {
+    try {
+        const res = await fetch(`${API_URL}/${id}`);
+        return res.ok;
+    } catch {
+        return false;
+    }
+}
+
+// Edit student
+async function editStudent(id) {
+    try {
+        const res = await fetch(`${API_URL}/${id}`);
+        if (!res.ok) throw new Error("Student not found");
+
+        const student = await res.json();
+
+        document.getElementById("studentId").value = student.studentId;
+        document.getElementById("studentName").value = student.studentName;
+        document.getElementById("studentEmail").value = student.studentEmail;
+        document.getElementById("marks").value = student.marks;
+    } catch (error) {
+        alert("Error fetching student details");
+    }
+}
+
+// Delete student
+async function deleteStudent(id) {
+    if (!confirm("Are you sure you want to delete this student?")) return;
+
+    try {
+        const res = await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+        if (!res.ok) throw new Error("Failed to delete student");
+
+        await fetchStudents();
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+// Reset form
+function resetForm() {
+    document.getElementById("studentForm").reset();
+    document.getElementById("studentIdHidden").value = "";
+}
+
+// Reset button event
+document.getElementById("resetBtn").addEventListener("click", resetForm);
+
+// Initial fetch
+fetchStudents();
+</script>
+
+</body>
+</html>
