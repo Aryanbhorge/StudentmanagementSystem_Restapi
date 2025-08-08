@@ -39,3 +39,5 @@ Dependencies The project uses the following dependencies:
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
+ Access to frontend:
+ Visit:http://localhost:8082/api/students
